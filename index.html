@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>s21 Speedrun Timer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #timer {
+            font-size: 2em;
+            margin: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            width: 200px; /* Установите фиксированную ширину */
+            text-align: center; /* Центрируем текст */
+        }
+        .controls, .splits {
+            margin: 10px;
+        }
+        .splits {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .split {
+            display: flex;
+            justify-content: space-between;
+            width: 200px; /* Установите фиксированную ширину */
+            margin: 5px;
+        }
+        .split-input {
+            flex-grow: 1;
+        }
+        .split-time {
+            width: 100px;
+            text-align: right;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .split-controls {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>s21 Speedrun Timer</h1>
+    <input type="text" id="timerName" placeholder="Enter timer name" />
+    <div id="timer">00:00:00.00</div>
+    <div class="controls">
+        <button onclick="startTimer()">Start</button>
+        <button onclick="pauseTimer()">Pause</button>
+        <button onclick="resetTimer()">Reset</button>
+        <button onclick="nextSplit()">Next Split</button>
+        <button onclick="previousSplit()">Previous Split</button>
+    </div>
+    <div class="splits" id="splits">
+        <div class="split">
+            <input type="text" class="split-input" placeholder="Enter split name" />
+            <div class="split-time"></div>
+        </div>
+    </div>
+    <div class="split-controls">
+        <button onclick="addSplit()">Add Split</button>
+        <button onclick="removeSplit()">Remove Split</button>
+    </div>
+    <script>
+        let timerElement = document.getElementById('timer');
+        let splitsContainer = document.getElementById('splits');
+        let startTime, elapsedTime = 0, timerInterval;
+        let currentSplit = 0;
+
+        function formatTime(ms) {
+            let milliseconds = Math.floor((ms % 1000) / 10).toString().padStart(2, '0');
+            let seconds = Math.floor((ms / 1000) % 60).toString().padStart(2, '0');
+            let minutes = Math.floor((ms / (1000 * 60)) % 60).toString().padStart(2, '0');
+            let hours = Math.floor((ms / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}.${milliseconds}`;
+        }
+
+        function updateTimer() {
+            elapsedTime = Date.now() - startTime;
+            timerElement.innerText = formatTime(elapsedTime);
+        }
+
+        function startTimer() {
+            if (!timerInterval) {
+                startTime = Date.now() - elapsedTime;
+                timerInterval = setInterval(updateTimer, 10);
+            }
+        }
+
+        function pauseTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            elapsedTime = 0;
+            currentSplit = 0;
+            timerElement.innerText = formatTime(elapsedTime);
+            const splitTimes = splitsContainer.getElementsByClassName('split-time');
+            for (let time of splitTimes) {
+                time.innerText = '';
+            }
+        }
+
+        function nextSplit() {
+            const splitTimes = splitsContainer.getElementsByClassName('split-time');
+            if (currentSplit < splitTimes.length) {
+                splitTimes[currentSplit].innerText = formatTime(elapsedTime);
+                currentSplit++;
+                if (currentSplit === splitTimes.length) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+            }
+        }
+
+        function previousSplit() {
+            const splitTimes = splitsContainer.getElementsByClassName('split-time');
+            if (currentSplit > 0) {
+                currentSplit--;
+                splitTimes[currentSplit].innerText = '';
+            }
+        }
+
+        function addSplit() {
+            const newSplit = document.createElement('div');
+            newSplit.className = 'split';
+            newSplit.innerHTML = `
+                <input type="text" class="split-input" placeholder="Enter split name" />
+                <div class="split-time"></div>
+            `;
+            splitsContainer.appendChild(newSplit);
+        }
+
+        function removeSplit() {
+            const splits = splitsContainer.getElementsByClassName('split');
+            if (splits.length > 0) {
+                splitsContainer.removeChild(splits[splits.length - 1]);
+                if (currentSplit > splits.length - 1) {
+                    currentSplit = splits.length - 1;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
