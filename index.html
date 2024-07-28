@@ -32,7 +32,7 @@
         .split {
             display: flex;
             justify-content: space-between;
-            width: 200px; /* Установите фиксированную ширину */
+            width: 300px; /* Установите фиксированную ширину */
             margin: 5px;
         }
         .split-input {
@@ -58,6 +58,9 @@
         <button onclick="resetTimer()">Reset</button>
         <button onclick="nextSplit()">Next Split</button>
         <button onclick="previousSplit()">Previous Split</button>
+        <button onclick="exportTimer()">Export Timer</button>
+        <button onclick="importTimer()">Import Timer</button>
+        <input type="file" id="fileInput" style="display:none;" onchange="handleFile(event)" />
     </div>
     <div class="splits" id="splits">
         <div class="split">
@@ -150,6 +153,55 @@
                     currentSplit = splits.length - 1;
                 }
             }
+        }
+
+        function exportTimer() {
+            const splits = splitsContainer.getElementsByClassName('split');
+            const splitData = [];
+            for (let split of splits) {
+                const splitName = split.querySelector('.split-input').value;
+                const splitTime = split.querySelector('.split-time').innerText;
+                splitData.push({ name: splitName, time: splitTime });
+            }
+            const timerData = {
+                timerName: document.getElementById('timerName').value,
+                elapsedTime,
+                splits: splitData
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(timerData));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "timer_data.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importTimer() {
+            document.getElementById('fileInput').click();
+        }
+
+        function handleFile(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const timerData = JSON.parse(e.target.result);
+                document.getElementById('timerName').value = timerData.timerName;
+                elapsedTime = timerData.elapsedTime;
+                timerElement.innerText = formatTime(elapsedTime);
+                splitsContainer.innerHTML = '';
+                timerData.splits.forEach(split => {
+                    const newSplit = document.createElement('div');
+                    newSplit.className = 'split';
+                    newSplit.innerHTML = `
+                        <input type="text" class="split-input" value="${split.name}" />
+                        <div class="split-time">${split.time}</div>
+                    `;
+                    splitsContainer.appendChild(newSplit);
+                });
+                currentSplit = timerData.splits.length;
+            };
+            reader.readAsText(file);
         }
     </script>
 </body>
