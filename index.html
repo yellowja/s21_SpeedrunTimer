@@ -21,7 +21,11 @@
             width: 200px; /* Установите фиксированную ширину */
             text-align: center; /* Центрируем текст */
         }
-        .controls, .splits {
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px; /* Добавьте промежуток между кнопками */
             margin: 10px;
         }
         .splits {
@@ -31,16 +35,17 @@
         }
         .split {
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
+            align-items: flex-start;
             width: 300px; /* Установите фиксированную ширину */
             margin: 5px;
         }
         .split-input {
-            flex-grow: 1;
+            width: 100%; /* Занимает всю ширину */
         }
         .split-time {
-            width: 100px;
-            text-align: right;
+            width: 100%;
+            text-align: left;
             font-family: 'Courier New', Courier, monospace;
         }
         .split-controls {
@@ -65,7 +70,7 @@
     <div class="splits" id="splits">
         <div class="split">
             <input type="text" class="split-input" placeholder="Enter split name" />
-            <div class="split-time"></div>
+            <div class="split-time">🟩 --:--:--.--</div>
         </div>
     </div>
     <div class="split-controls">
@@ -111,14 +116,14 @@
             timerElement.innerText = formatTime(elapsedTime);
             const splitTimes = splitsContainer.getElementsByClassName('split-time');
             for (let time of splitTimes) {
-                time.innerText = '';
+                time.innerText = '🟩 --:--:--.--';
             }
         }
 
         function nextSplit() {
             const splitTimes = splitsContainer.getElementsByClassName('split-time');
             if (currentSplit < splitTimes.length) {
-                splitTimes[currentSplit].innerText = formatTime(elapsedTime);
+                splitTimes[currentSplit].innerText = '✅ '+formatTime(elapsedTime);
                 currentSplit++;
                 if (currentSplit === splitTimes.length) {
                     clearInterval(timerInterval);
@@ -131,7 +136,7 @@
             const splitTimes = splitsContainer.getElementsByClassName('split-time');
             if (currentSplit > 0) {
                 currentSplit--;
-                splitTimes[currentSplit].innerText = '';
+                splitTimes[currentSplit].innerText = '🟩 --:--:--.--';
             }
         }
 
@@ -140,7 +145,7 @@
             newSplit.className = 'split';
             newSplit.innerHTML = `
                 <input type="text" class="split-input" placeholder="Enter split name" />
-                <div class="split-time"></div>
+                <div class="split-time">🟩 --:--:--.--</div>
             `;
             splitsContainer.appendChild(newSplit);
         }
