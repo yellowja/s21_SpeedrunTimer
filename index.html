@@ -1,94 +1,635 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>s21 Speedrun Timer</title>
     <style>
+        :root {
+            --bg: #0f1220;
+            --panel: rgba(255, 255, 255, 0.08);
+            --panel-strong: rgba(255, 255, 255, 0.12);
+            --border: rgba(255, 255, 255, 0.14);
+            --text: #f6f7fb;
+            --muted: #aab0c5;
+            --accent: #7c5cff;
+            --accent-strong: #9277ff;
+            --danger: #ff5c7a;
+            --success: #43d17a;
+            --warning: #ffd166;
+            --shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+            --radius-xl: 28px;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --mono: "SFMono-Regular", Consolas, "Liberation Mono", "Courier New", monospace;
+            --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            min-height: 100%;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
+            min-height: 100svh;
             margin: 0;
+            font-family: var(--sans);
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(124, 92, 255, 0.35), transparent 34rem),
+                radial-gradient(circle at bottom right, rgba(67, 209, 122, 0.16), transparent 30rem),
+                var(--bg);
         }
-        #timer {
-            font-size: 2em;
-            margin: 10px;
-            font-family: 'Courier New', Courier, monospace;
-            width: 200px; /* Установите фиксированную ширину */
-            text-align: center; /* Центрируем текст */
+
+        button,
+        input {
+            font: inherit;
         }
-        .controls {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px; /* Добавьте промежуток между кнопками */
-            margin: 10px;
+
+        button {
+            border: 0;
+            cursor: pointer;
         }
-        .splits {
+
+        button:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(124, 92, 255, 0.45);
+            outline-offset: 2px;
+        }
+
+        .app {
+            width: min(1180px, 100%);
+            min-height: 100svh;
+            margin: 0 auto;
+            padding: 24px;
+            display: grid;
+            grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+            gap: 20px;
+            align-items: stretch;
+        }
+
+        .panel {
+            border: 1px solid var(--border);
+            background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.055));
+            box-shadow: var(--shadow);
+            border-radius: var(--radius-xl);
+            backdrop-filter: blur(18px);
+        }
+
+        .timer-panel {
+            position: sticky;
+            top: 24px;
+            align-self: start;
             display: flex;
             flex-direction: column;
+            gap: 18px;
+            padding: 22px;
+        }
+
+        .brand {
+            display: flex;
             align-items: center;
+            justify-content: space-between;
+            gap: 16px;
         }
-        .split {
+
+        .brand-text {
+            min-width: 0;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(1.4rem, 3vw, 2.1rem);
+            letter-spacing: -0.05em;
+            line-height: 1.05;
+        }
+
+        .subtitle {
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .status-pill {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 34px;
+            padding: 7px 11px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--muted);
+            font-size: 0.84rem;
+            white-space: nowrap;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--muted);
+            box-shadow: 0 0 0 4px rgba(170, 176, 197, 0.12);
+        }
+
+        body.is-running .status-dot {
+            background: var(--success);
+            box-shadow: 0 0 0 4px rgba(67, 209, 122, 0.14);
+        }
+
+        body.is-finished .status-dot {
+            background: var(--warning);
+            box-shadow: 0 0 0 4px rgba(255, 209, 102, 0.14);
+        }
+
+        .field {
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
-            width: 300px; /* Установите фиксированную ширину */
-            margin: 5px;
+            gap: 8px;
         }
-        .split-input {
-            width: 100%; /* Занимает всю ширину */
+
+        .field label {
+            color: var(--muted);
+            font-size: 0.86rem;
         }
-        .split-time {
+
+        .text-input {
             width: 100%;
-            text-align: left;
-            font-family: 'Courier New', Courier, monospace;
+            min-height: 46px;
+            padding: 0 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: rgba(0, 0, 0, 0.20);
+            color: var(--text);
         }
-        .split-controls {
-            margin-top: 10px;
+
+        .text-input::placeholder {
+            color: rgba(170, 176, 197, 0.7);
+        }
+
+        .timer-display {
+            width: 100%;
+            padding: 22px 14px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(0, 0, 0, 0.28);
+            text-align: center;
+            font-family: var(--mono);
+            font-size: clamp(2.35rem, 3vw, 4.6rem);
+            line-height: 1;
+            letter-spacing: -0.08em;
+            font-variant-numeric: tabular-nums;
+            overflow: hidden;
+        }
+
+        .run-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .info-card {
+            min-height: 70px;
+            padding: 13px;
+            border-radius: var(--radius-lg);
+            background: rgba(255, 255, 255, 0.075);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+        }
+
+        .info-label {
+            color: var(--muted);
+            font-size: 0.78rem;
+        }
+
+        .info-value {
+            margin-top: 7px;
+            font-family: var(--mono);
+            font-size: 1.2rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .controls,
+        .file-controls,
+        .split-actions {
+            display: grid;
+            gap: 10px;
+        }
+
+        .controls {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .file-controls,
+        .split-actions {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .btn {
+            min-height: 46px;
+            padding: 0 14px;
+            border-radius: var(--radius-md);
+            color: var(--text);
+            background: var(--panel-strong);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease, opacity 0.16s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            user-select: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.17);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+            border-color: transparent;
+        }
+
+        .btn.success {
+            background: linear-gradient(135deg, #24b96c, #43d17a);
+            border-color: transparent;
+            color: #07120c;
+            font-weight: 700;
+        }
+
+        .btn.danger {
+            background: rgba(255, 92, 122, 0.14);
+            border-color: rgba(255, 92, 122, 0.28);
+            color: #ffd7df;
+        }
+
+        .btn.full {
+            grid-column: 1 / -1;
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 0.83rem;
+            line-height: 1.45;
+        }
+
+        .splits-panel {
+            min-height: calc(100svh - 48px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .splits-header {
+            padding: 20px 20px 14px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+        }
+
+        .splits-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+            letter-spacing: -0.03em;
+        }
+
+        .splits-meta {
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .splits {
+            flex: 1;
+            overflow: auto;
+            padding: 14px;
+            scroll-behavior: smooth;
+        }
+
+        .split {
+            display: grid;
+            grid-template-columns: 42px minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            background: rgba(255, 255, 255, 0.065);
+        }
+
+        .split.is-current {
+            background: rgba(124, 92, 255, 0.16);
+            border-color: rgba(124, 92, 255, 0.46);
+        }
+
+        .split.is-done {
+            background: rgba(67, 209, 122, 0.10);
+            border-color: rgba(67, 209, 122, 0.25);
+        }
+
+        .split-number {
+            width: 42px;
+            height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 15px;
+            background: rgba(0, 0, 0, 0.22);
+            color: var(--muted);
+            font-family: var(--mono);
+            font-size: 0.95rem;
+        }
+
+        .split-main {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .split-input {
+            width: 100%;
+            min-height: 38px;
+            border: 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+            background: transparent;
+            color: var(--text);
+            padding: 0 2px 7px;
+        }
+
+        .split-input::placeholder {
+            color: rgba(170, 176, 197, 0.72);
+        }
+
+        .split-time {
+            color: var(--muted);
+            font-family: var(--mono);
+            font-size: 1.02rem;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .split.is-done .split-time {
+            color: #b8ffd1;
+        }
+
+        .splits-footer {
+            padding: 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.10);
+            background: rgba(0, 0, 0, 0.12);
+        }
+
+        .empty-state {
+            min-height: 160px;
+            display: none;
+            place-items: center;
+            text-align: center;
+            color: var(--muted);
+            padding: 28px;
+            border: 1px dashed rgba(255, 255, 255, 0.16);
+            border-radius: var(--radius-lg);
+        }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 18px;
+            z-index: 10;
+            transform: translate(-50%, 18px);
+            opacity: 0;
+            pointer-events: none;
+            max-width: min(520px, calc(100% - 28px));
+            padding: 12px 16px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: rgba(20, 23, 38, 0.92);
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.32);
+            color: var(--text);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        @media (max-width: 860px) {
+            .app {
+                grid-template-columns: 1fr;
+                padding: 14px;
+            }
+
+            .timer-panel {
+                position: static;
+            }
+
+            .splits-panel {
+                min-height: auto;
+                max-height: none;
+            }
+
+            .splits {
+                max-height: 62svh;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .timer-panel,
+            .splits-header,
+            .splits-footer {
+                padding: 14px;
+            }
+
+            .brand {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .status-pill {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .controls {
+                grid-template-columns: 1fr;
+            }
+
+            .file-controls,
+            .split-actions,
+            .run-info {
+                grid-template-columns: 1fr;
+            }
+
+            .split {
+                grid-template-columns: 36px minmax(0, 1fr);
+            }
+
+            .split-number {
+                width: 36px;
+                height: 36px;
+                border-radius: 13px;
+            }
+
+            .timer-display {
+                padding: 18px 10px;
+                font-size: clamp(2.25rem, 14vw, 3.8rem);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                transition: none !important;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>s21 Speedrun Timer</h1>
-    <input type="text" id="timerName" placeholder="Enter timer name" />
-    <div id="timer">00:00:00.00</div>
-    <div class="controls">
-        <button onclick="startTimer()">Start</button>
-        <button onclick="pauseTimer()">Pause</button>
-        <button onclick="resetTimer()">Reset</button>
-        <button onclick="nextSplit()">Next Split</button>
-        <button onclick="previousSplit()">Previous Split</button>
-        <button onclick="exportTimer()">Export Timer</button>
-        <button onclick="importTimer()">Import Timer</button>
-        <input type="file" id="fileInput" style="display:none;" onchange="handleFile(event)" />
-    </div>
-    <div class="splits" id="splits">
-        <div class="split">
-            <input type="text" class="split-input" placeholder="Enter split name" />
-            <div class="split-time">🟩 --:--:--.--</div>
-        </div>
-    </div>
-    <div class="split-controls">
-        <button onclick="addSplit()">Add Split</button>
-        <button onclick="removeSplit()">Remove Split</button>
-    </div>
+    <main class="app">
+        <section class="panel timer-panel" aria-label="Timer controls">
+            <div class="brand">
+                <div class="brand-text">
+                    <h1>s21 Speedrun Timer</h1>
+                    <div class="subtitle">таймер, сплиты, импорт и экспорт в одном файле</div>
+                </div>
+                <div class="status-pill" aria-live="polite">
+                    <span class="status-dot" aria-hidden="true"></span>
+                    <span id="statusText">Ready</span>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="timerName">Timer name</label>
+                <input class="text-input" type="text" id="timerName" placeholder="Enter timer name" autocomplete="off" />
+            </div>
+
+            <div id="timer" class="timer-display" aria-live="polite">00:00:00.00</div>
+
+            <div class="run-info" aria-label="Run progress">
+                <div class="info-card">
+                    <div class="info-label">Current split</div>
+                    <div id="currentSplitInfo" class="info-value">1 / 1</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Total splits</div>
+                    <div id="totalSplitsInfo" class="info-value">1</div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn primary" id="startBtn" type="button">▶ Start</button>
+                <button class="btn" id="pauseBtn" type="button">⏸ Pause</button>
+                <button class="btn danger" id="resetBtn" type="button">↺ Reset</button>
+                <button class="btn success" id="nextSplitBtn" type="button">✓ Next Split</button>
+                <button class="btn" id="previousSplitBtn" type="button">← Previous</button>
+                <button class="btn" id="addSplitBtn" type="button">＋ Add Split</button>
+            </div>
+
+            <div class="file-controls">
+                <button class="btn" id="exportBtn" type="button">⇩ Export Timer</button>
+                <button class="btn" id="importBtn" type="button">⇧ Import Timer</button>
+                <input type="file" id="fileInput" class="sr-only" accept="application/json,.json" />
+            </div>
+
+            <div class="hint">
+                Hotkeys: <b>Space</b> — start/pause, <b>Enter</b> — next split, <b>Backspace</b> — previous split.
+            </div>
+        </section>
+
+        <section class="panel splits-panel" aria-label="Splits list">
+            <header class="splits-header">
+                <div>
+                    <h2>Splits</h2>
+                    <div id="splitsMeta" class="splits-meta">1 split · next: #1</div>
+                </div>
+            </header>
+
+            <div class="splits" id="splits">
+                <div class="empty-state" id="emptyState">
+                    No splits yet. Add a split to start building your route.
+                </div>
+            </div>
+
+            <footer class="splits-footer">
+                <div class="split-actions">
+                    <button class="btn" id="addSplitFooterBtn" type="button">＋ Add Split</button>
+                    <button class="btn danger" id="removeSplitBtn" type="button">− Remove Last Split</button>
+                </div>
+            </footer>
+        </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
     <script>
-        let timerElement = document.getElementById('timer');
-        let splitsContainer = document.getElementById('splits');
-        let startTime, elapsedTime = 0, timerInterval;
+        const timerElement = document.getElementById('timer');
+        const timerNameInput = document.getElementById('timerName');
+        const splitsContainer = document.getElementById('splits');
+        const fileInput = document.getElementById('fileInput');
+        const statusText = document.getElementById('statusText');
+        const currentSplitInfo = document.getElementById('currentSplitInfo');
+        const totalSplitsInfo = document.getElementById('totalSplitsInfo');
+        const splitsMeta = document.getElementById('splitsMeta');
+        const emptyState = document.getElementById('emptyState');
+        const toast = document.getElementById('toast');
+
+        let startTime;
+        let elapsedTime = 0;
+        let timerInterval = null;
         let currentSplit = 0;
+        let toastTimeout = null;
 
         function formatTime(ms) {
-            let milliseconds = Math.floor((ms % 1000) / 10).toString().padStart(2, '0');
-            let seconds = Math.floor((ms / 1000) % 60).toString().padStart(2, '0');
-            let minutes = Math.floor((ms / (1000 * 60)) % 60).toString().padStart(2, '0');
-            let hours = Math.floor((ms / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
+            const milliseconds = Math.floor((ms % 1000) / 10).toString().padStart(2, '0');
+            const seconds = Math.floor((ms / 1000) % 60).toString().padStart(2, '0');
+            const minutes = Math.floor((ms / (1000 * 60)) % 60).toString().padStart(2, '0');
+            const hours = Math.floor(ms / (1000 * 60 * 60)).toString().padStart(2, '0');
             return `${hours}:${minutes}:${seconds}.${milliseconds}`;
+        }
+
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.add('show');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => toast.classList.remove('show'), 2200);
+        }
+
+        function getSplits() {
+            return Array.from(splitsContainer.querySelectorAll('.split'));
+        }
+
+        function getSplitTimes() {
+            return Array.from(splitsContainer.querySelectorAll('.split-time'));
+        }
+
+        function isFinished() {
+            const splits = getSplits();
+            return splits.length > 0 && currentSplit >= splits.length && !timerInterval;
         }
 
         function updateTimer() {
@@ -96,16 +637,65 @@
             timerElement.innerText = formatTime(elapsedTime);
         }
 
+        function updateStatus() {
+            document.body.classList.toggle('is-running', Boolean(timerInterval));
+            document.body.classList.toggle('is-finished', isFinished());
+
+            if (timerInterval) {
+                statusText.textContent = 'Running';
+            } else if (isFinished()) {
+                statusText.textContent = 'Finished';
+            } else if (elapsedTime > 0) {
+                statusText.textContent = 'Paused';
+            } else {
+                statusText.textContent = 'Ready';
+            }
+        }
+
+        function updateSplitVisuals() {
+            const splits = getSplits();
+            splits.forEach((split, index) => {
+                const isDone = index < currentSplit;
+                const isCurrent = index === currentSplit && currentSplit < splits.length;
+                const number = split.querySelector('.split-number');
+
+                split.classList.toggle('is-done', isDone);
+                split.classList.toggle('is-current', isCurrent);
+
+                number.textContent = String(index + 1).padStart(2, '0');
+            });
+
+            const total = splits.length;
+            const displayCurrent = total === 0 ? 0 : Math.min(currentSplit + 1, total);
+            currentSplitInfo.textContent = `${displayCurrent} / ${total}`;
+            totalSplitsInfo.textContent = total;
+            splitsMeta.textContent = total === 0
+                ? '0 splits'
+                : `${total} ${total === 1 ? 'split' : 'splits'} · ${currentSplit >= total ? 'finished' : `next: #${currentSplit + 1}`}`;
+            emptyState.style.display = total === 0 ? 'grid' : 'none';
+
+            updateStatus();
+        }
+
+        function scrollCurrentSplitIntoView() {
+            const splits = getSplits();
+            if (splits[currentSplit]) {
+                splits[currentSplit].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+        }
+
         function startTimer() {
             if (!timerInterval) {
                 startTime = Date.now() - elapsedTime;
                 timerInterval = setInterval(updateTimer, 10);
+                updateStatus();
             }
         }
 
         function pauseTimer() {
             clearInterval(timerInterval);
             timerInterval = null;
+            updateStatus();
         }
 
         function resetTimer() {
@@ -114,101 +704,181 @@
             elapsedTime = 0;
             currentSplit = 0;
             timerElement.innerText = formatTime(elapsedTime);
-            const splitTimes = splitsContainer.getElementsByClassName('split-time');
-            for (let time of splitTimes) {
+
+            getSplitTimes().forEach(time => {
                 time.innerText = '🟩 --:--:--.--';
-            }
+            });
+
+            updateSplitVisuals();
+            scrollCurrentSplitIntoView();
         }
 
         function nextSplit() {
-            const splitTimes = splitsContainer.getElementsByClassName('split-time');
+            const splitTimes = getSplitTimes();
             if (currentSplit < splitTimes.length) {
-                splitTimes[currentSplit].innerText = '✅ '+formatTime(elapsedTime);
+                splitTimes[currentSplit].innerText = '✅ ' + formatTime(elapsedTime);
                 currentSplit++;
+
                 if (currentSplit === splitTimes.length) {
-                    clearInterval(timerInterval);
-                    timerInterval = null;
+                    pauseTimer();
+                    showToast('Run finished');
                 }
+
+                updateSplitVisuals();
+                scrollCurrentSplitIntoView();
             }
         }
 
         function previousSplit() {
-            const splitTimes = splitsContainer.getElementsByClassName('split-time');
+            const splitTimes = getSplitTimes();
             if (currentSplit > 0) {
                 currentSplit--;
                 splitTimes[currentSplit].innerText = '🟩 --:--:--.--';
+                updateSplitVisuals();
+                scrollCurrentSplitIntoView();
             }
         }
 
-        function addSplit() {
-            const newSplit = document.createElement('div');
-            newSplit.className = 'split';
-            newSplit.innerHTML = `
-                <input type="text" class="split-input" placeholder="Enter split name" />
-                <div class="split-time">🟩 --:--:--.--</div>
-            `;
-            splitsContainer.appendChild(newSplit);
+        function createSplitElement(name = '', time = '🟩 --:--:--.--') {
+            const split = document.createElement('div');
+            split.className = 'split';
+
+            const number = document.createElement('div');
+            number.className = 'split-number';
+
+            const main = document.createElement('div');
+            main.className = 'split-main';
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'split-input';
+            input.placeholder = 'Enter split name';
+            input.value = name;
+            input.autocomplete = 'off';
+
+            const splitTime = document.createElement('div');
+            splitTime.className = 'split-time';
+            splitTime.innerText = time;
+            main.append(input, splitTime);
+            split.append(number, main);
+
+            return split;
+        }
+
+        function addSplit(name = '', time = '🟩 --:--:--.--') {
+            splitsContainer.appendChild(createSplitElement(name, time));
+            updateSplitVisuals();
+            const splits = getSplits();
+            splits[splits.length - 1]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         }
 
         function removeSplit() {
-            const splits = splitsContainer.getElementsByClassName('split');
+            const splits = getSplits();
             if (splits.length > 0) {
-                splitsContainer.removeChild(splits[splits.length - 1]);
-                if (currentSplit > splits.length - 1) {
-                    currentSplit = splits.length - 1;
+                splits[splits.length - 1].remove();
+                if (currentSplit > getSplits().length) {
+                    currentSplit = getSplits().length;
                 }
+                updateSplitVisuals();
             }
         }
 
         function exportTimer() {
-            const splits = splitsContainer.getElementsByClassName('split');
-            const splitData = [];
-            for (let split of splits) {
-                const splitName = split.querySelector('.split-input').value;
-                const splitTime = split.querySelector('.split-time').innerText;
-                splitData.push({ name: splitName, time: splitTime });
-            }
+            const splits = getSplits();
+            const splitData = splits.map(split => ({
+                name: split.querySelector('.split-input').value,
+                time: split.querySelector('.split-time').innerText
+            }));
+
             const timerData = {
-                timerName: document.getElementById('timerName').value,
+                timerName: timerNameInput.value,
                 elapsedTime,
                 splits: splitData,
-                currentSplit // Добавляем текущее состояние сплитов
+                currentSplit
             };
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(timerData));
+
+            const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(timerData, null, 2));
             const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "timer_data.json");
+            downloadAnchorNode.setAttribute('href', dataStr);
+            downloadAnchorNode.setAttribute('download', 'timer_data.json');
             document.body.appendChild(downloadAnchorNode);
             downloadAnchorNode.click();
             downloadAnchorNode.remove();
+            showToast('Timer exported');
         }
 
         function importTimer() {
-            document.getElementById('fileInput').click();
+            fileInput.click();
         }
 
         function handleFile(event) {
             const file = event.target.files[0];
+            if (!file) return;
+
             const reader = new FileReader();
             reader.onload = function(e) {
-                const timerData = JSON.parse(e.target.result);
-                document.getElementById('timerName').value = timerData.timerName;
-                elapsedTime = timerData.elapsedTime;
-                timerElement.innerText = formatTime(elapsedTime);
-                splitsContainer.innerHTML = '';
-                timerData.splits.forEach(split => {
-                    const newSplit = document.createElement('div');
-                    newSplit.className = 'split';
-                    newSplit.innerHTML = `
-                        <input type="text" class="split-input" value="${split.name}" />
-                        <div class="split-time">${split.time}</div>
-                    `;
-                    splitsContainer.appendChild(newSplit);
-                });
-                currentSplit = timerData.currentSplit; // Восстанавливаем текущее состояние сплитов
+                try {
+                    const timerData = JSON.parse(e.target.result);
+
+                    timerNameInput.value = timerData.timerName || '';
+                    elapsedTime = Number(timerData.elapsedTime) || 0;
+                    timerElement.innerText = formatTime(elapsedTime);
+
+                    splitsContainer.innerHTML = '';
+                    const importedSplits = Array.isArray(timerData.splits) ? timerData.splits : [];
+                    importedSplits.forEach(split => {
+                        addSplit(split.name || '', split.time || '🟩 --:--:--.--');
+                    });
+
+                    currentSplit = Math.max(0, Math.min(Number(timerData.currentSplit) || 0, getSplits().length));
+                    updateSplitVisuals();
+                    pauseTimer();
+                    showToast('Timer imported');
+                } catch (error) {
+                    showToast('Import failed: invalid JSON');
+                } finally {
+                    fileInput.value = '';
+                }
             };
+
             reader.readAsText(file);
         }
+
+        document.getElementById('startBtn').addEventListener('click', startTimer);
+        document.getElementById('pauseBtn').addEventListener('click', pauseTimer);
+        document.getElementById('resetBtn').addEventListener('click', resetTimer);
+        document.getElementById('nextSplitBtn').addEventListener('click', nextSplit);
+        document.getElementById('previousSplitBtn').addEventListener('click', previousSplit);
+        document.getElementById('addSplitBtn').addEventListener('click', () => addSplit());
+        document.getElementById('addSplitFooterBtn').addEventListener('click', () => addSplit());
+        document.getElementById('removeSplitBtn').addEventListener('click', removeSplit);
+        document.getElementById('exportBtn').addEventListener('click', exportTimer);
+        document.getElementById('importBtn').addEventListener('click', importTimer);
+        fileInput.addEventListener('change', handleFile);
+
+        document.addEventListener('keydown', event => {
+            const tagName = document.activeElement?.tagName?.toLowerCase();
+            const isTyping = tagName === 'input' || tagName === 'textarea';
+            if (isTyping) return;
+
+            if (event.code === 'Space') {
+                event.preventDefault();
+                timerInterval ? pauseTimer() : startTimer();
+            }
+
+            if (event.code === 'Enter') {
+                event.preventDefault();
+                nextSplit();
+            }
+
+            if (event.code === 'Backspace') {
+                event.preventDefault();
+                previousSplit();
+            }
+        });
+
+        addSplit();
+        updateSplitVisuals();
     </script>
 </body>
 </html>
